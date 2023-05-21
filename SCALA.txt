@@ -1,0 +1,35 @@
+val df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("train.csv")
+
+df.columns
+
+df.count()
+
+df.printSchema()
+
+df.show(2)
+
+df.select("Age").show(10)
+
+df.filter(df("Purchase") >= 10000).select("Purchase").show(10)
+
+val df1 = df.select("User_ID","Occupation","Marital_Status","Purchase")
+
+import org.apache.spark.ml.feature.RFormula
+
+val formula = new RFormula().setFormula("Purchase ~ User_ID+Occupation+Marital_Status").setFeaturesCol("features").setLabelCol("label")
+
+val train = formula.fit(df1).transform(df1)
+
+import org.apache.spark.ml.regression.LinearRegression
+
+val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
+
+val lrModel = lr.fit(train)
+
+println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
+
+val trainingSummary = lrModel.summary
+
+trainingSummary.residuals.show(10)
+
+println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
